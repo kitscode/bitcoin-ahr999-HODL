@@ -1,5 +1,6 @@
 import math
 import requests
+import json
 from scipy import stats
 
 '''
@@ -14,15 +15,19 @@ ahr999囤币指标:
 根据指标回测，当指标低于0.45时适合抄底，在0.45和1.2区间内适合定投BTC，高于该区间意味着错过最佳定投时期。
 '''
 
+result = []
+
 
 def ahr999():
-    url = 'https://api-pub.bitfinex.com/v2/candles/trade:1D:tBTCUSD/hist?start=1577836800000&end=1714121440000&sort=1&limit=10000'
+    url = 'https://api-pub.bitfinex.com/v2/candles/trade:1D:tBTCUSD/hist?start=1577836800000&end=1716163200000&sort=1&limit=10000'
 
     r = requests.get(url)
     data = r.json()
     print("data len:", len(data))
     lows = []
 
+    # item: [1716163200000, 66338, 66991, 67347, 66166, 130.99140079]
+    # 0:timestamp, 1:open, 2:close, 3:high, 4:low, 5:volume
     for item in data:
         low = item[4]
         lows.append(low)
@@ -33,7 +38,18 @@ def ahr999():
         coinIndex = 10 ** (5.84 * math.log(day, 10) - 17.01)
         ahr999 = (low / geomean) * (low / coinIndex)
         print(item, ahr999, day, coinIndex, geomean)
+        result.append({
+            'timestamp': item[0],
+            'low': low,  # btc price
+            'geomean': geomean,  # 200 day cost
+            'ahr999': ahr999  # ahr999 index
+        })
+        # 0.45 buy at bottom
+        # 1.2 fixed invest
 
+    # export data to json file
+    with open('ahr999.json', 'w') as f:
+        json.dump(result, f)
 
 if __name__ == '__main__':
     ahr999()
